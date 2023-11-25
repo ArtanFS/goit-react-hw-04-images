@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ThreeDots } from 'react-loader-spinner';
 import getImages from './API/api';
 import Searchbar from './Searchbar';
@@ -7,91 +7,70 @@ import Button from './Button';
 import Modal from './Modal';
 import css from './App.module.css';
 
-export class App extends Component {
-  state = {
-    images: [],
-    query: '',
-    page: 1,
-    isLoading: false,
-    loadMore: false,
-    modalData: null,
-    error: '',
-  };
+const App = () => {
+  const [images, setImages] = useState([]);
+  const [query, setQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadMore, setLoadMore] = useState(false);
+  const [modalData, setModalData] = useState(null);
+  const [error, setError] = useState('');
 
-  componentDidUpdate(_, prevState) {
-    const { query, page } = this.state;
-    if (prevState.query !== query || prevState.page !== page) {
-      this.handleImages();
-    }
-  }
-
-  handleImages = async () => {
-    const { images, query, page } = this.state;
-    try {
-      this.setState({ isLoading: true, loadMore: false });
-      const data = await getImages(query, page);
-      this.setState({
-        images: [...images, ...data.hits],
-        loadMore: page < Math.ceil(data.totalHits / 12),
-        error: '',
-      });
-    } catch (error) {
-      this.setState({ error: error.message });
-    } finally {
-      this.setState({ isLoading: false });
+  const onSubmit = searchData => {
+    if (query !== searchData) {
+      setQuery(searchData);
+      setImages([]);
+      setPage(1);
     }
   };
 
-  onSubmit = searchData => {
-    if (this.state.query !== searchData) {
-      this.setState({ query: searchData, images: [], page: 1 });
-    }
+  const toggleModal = (modalData = null) => {
+    setModalData(modalData);
   };
 
-  handleLoadMore = () => {
-    this.setState(prevState => ({
-      page: prevState.page + 1,
-    }));
-  };
+  useEffect(() => {
+    const handleImages = async () => {
+      try {
+        setIsLoading(true);
+        setLoadMore(false);
+        const data = await getImages(query, page);
+        setImages(prev => [...prev, ...data.hits]);
+        setLoadMore(page < Math.ceil(data.totalHits / 12));
+        setError('');
+      } catch (error) {
+        setError(error.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    if (query) handleImages();
+  }, [query, page]);
 
-  toggleModal = (modalData = null) => {
-    this.setState({ modalData });
-  };
+  return (
+    <div className={css.App}>
+      <Searchbar onSubmit={onSubmit} />
+      {images && <ImageGallery images={images} openModal={toggleModal} />}
+      {isLoading && (
+        <ThreeDots
+          wrapperClass={css.Loader}
+          height="80"
+          width="80"
+          radius="15"
+          color="#3f51b5"
+          ariaLabel="three-dots-loading"
+          visible={true}
+        />
+      )}
+      {loadMore && <Button onClick={() => setPage(prev => prev + 1)} />}
+      {query && !images.length && !isLoading && (
+        <p className={css.Message}>Sorry, nothing was found for your query.</p>
+      )}
+      {error && (
+        <p className={css.Message}>Sorry, but some error occurred: {error}.</p>
+      )}
+      {modalData && <Modal modalData={modalData} closeModal={toggleModal} />}
+    </div>
+  );
+};
 
-  render() {
-    const { images, query, loadMore, isLoading, modalData, error } = this.state;
-    return (
-      <div className={css.App}>
-        <Searchbar onSubmit={this.onSubmit} />
-        {images && (
-          <ImageGallery images={images} openModal={this.toggleModal} />
-        )}
-        {isLoading && (
-          <ThreeDots
-            wrapperClass={css.Loader}
-            height="80"
-            width="80"
-            radius="15"
-            color="#3f51b5"
-            ariaLabel="three-dots-loading"
-            visible={true}
-          />
-        )}
-        {loadMore && <Button onClick={this.handleLoadMore} />}
-        {query && !images.length && !isLoading && (
-          <p className={css.Message}>
-            Sorry, nothing was found for your query.
-          </p>
-        )}
-        {error && (
-          <p className={css.Message}>
-            Sorry, but some error occurred: {error}.
-          </p>
-        )}
-        {modalData && (
-          <Modal modalData={modalData} closeModal={this.toggleModal} />
-        )}
-      </div>
-    );
-  }
-}
+export default App;

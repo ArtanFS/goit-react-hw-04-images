@@ -1,36 +1,32 @@
-import { Component } from 'react';
+import { useEffect } from 'react';
 import css from './Modal.module.css';
 
-class Modal extends Component {
-  componentDidMount() {
-    window.addEventListener('keydown', this.hendleKeyboardClose);
-  }
+const Modal = ({ modalData, closeModal }) => {
+  const { url, alt } = modalData;
 
-  componentWillUnmount() {
-    window.removeEventListener('keydown', this.hendleKeyboardClose);
-  }
+  useEffect(() => {
+    const hendleKeyboardClose = e => {
+      if (e.code === 'Escape') {
+        closeModal();
+      }
+    };
+    window.addEventListener('keydown', hendleKeyboardClose);
+    return () => window.removeEventListener('keydown', hendleKeyboardClose);
+  }, [closeModal]);
 
-  hendleKeyboardClose = e => {
-    if (e.code === 'Escape') {
-      this.props.closeModal();
-    }
-  };
-
-  closeOnClickBackdrop = e => {
+  const closeOnClickBackdrop = e => {
     if (e.target === e.currentTarget) {
-      this.props.closeModal();
+      closeModal();
     }
   };
 
-  render() {
-    return (
-      <div className={css.Overlay} onClick={this.closeOnClickBackdrop}>
-        <div className={css.Modal}>
-          <img src={this.props.modalData.url} alt={this.props.modalData.alt} />
-        </div>
+  return (
+    <div className={css.Overlay} onClick={closeOnClickBackdrop}>
+      <div className={css.Modal}>
+        <img src={url} alt={alt} />
       </div>
-    );
-  }
-}
+    </div>
+  );
+};
 
 export default Modal;
