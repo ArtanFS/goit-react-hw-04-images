@@ -43,7 +43,7 @@ const App = () => {
         setIsLoading(false);
       }
     };
-    if (query) handleImages();
+    query && handleImages();
   }, [query, page]);
 
   return (
